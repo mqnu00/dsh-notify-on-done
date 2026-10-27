@@ -1,0 +1,12 @@
+# dsh-notify-on-done bundle patch
+#
+# 把本插件的宿主半作为 cordis 条目挂进 profile。条目必须存在：clientModules
+# 只扫描「已加载的宿主条目」里的 dsh.client 声明，没有这一条，浏览器启动图里
+# 就不会有这个插件（而 client 半才是干活的）。
+#
+# id 即插件 id；name 按 profile 的 node_modules 解析（link: 安装时是软链，
+# 源码改动重启后即生效）。
+
+- insert:
+    - id: dsh-notify-on-done
+      name: 'dsh-notify-on-done'
