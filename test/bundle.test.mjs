@@ -392,3 +392,34 @@ test('设置：默认值、落盘、脏数据不炸', () => {
   assert.equal(JSON.parse(storage.getItem('dsh-notify-on-done:settings')).sound, false);
   assert.equal(first.exported.__test.readSettings().onlyWhenUnfocused, false);
 });
+
+test('真实提醒：同一会话连续两次完成 → 两条不同 tag，且旧的一条被关掉', () => {
+  const { exported, Notification } = loadPlugin({ permission: 'granted', focused: false });
+  const settings = { ...exported.__test.DEFAULTS };
+  const event = { kind: 'completed', id: 's1', title: '会话', durationMs: 5000 };
+
+  assert.ok(exported.__test.deliver(event, settings, 1_000_000));
+  // 第二次必须过了跨标签页去重窗口（8s）才允许再提醒
+  assert.ok(exported.__test.deliver(event, settings, 1_020_000));
+
+  assert.equal(Notification.calls.length, 2);
+  assert.notEqual(
+    Notification.calls[0].options.tag,
+    Notification.calls[1].options.tag,
+    '同一个会话两次完成不能共用 tag —— Windows 会当成「原地更新」，只进通知中心不弹横幅',
+  );
+  assert.equal(Notification.calls[0].closed, true, '上一条同会话通知要关掉，通知中心只留最新');
+  assert.equal(Notification.calls[1].closed, false);
+});
+
+test('真实提醒：不同会话各自保留，互不关闭', () => {
+  const { exported, Notification } = loadPlugin({ permission: 'granted', focused: false });
+  const settings = { ...exported.__test.DEFAULTS };
+
+  exported.__test.deliver({ kind: 'completed', id: 's1', title: '一', durationMs: 1000 }, settings, 1000);
+  exported.__test.deliver({ kind: 'completed', id: 's2', title: '二', durationMs: 1000 }, settings, 1001);
+
+  assert.equal(Notification.calls.length, 2);
+  assert.equal(Notification.calls[0].closed, false, '另一个会话的通知不该被关掉');
+  assert.equal(Notification.calls[1].closed, false);
+});

@@ -1,6 +1,6 @@
 {
   "name": "dsh-notify-on-done",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "dsh 网页端：对话完成 / 需要你确认时弹出系统通知（浏览器桌面通知 + 站内兜底）",
   "keywords": [

@@ -124,6 +124,23 @@ ln -sfn /path/to/dsh-notify-on-done node_modules/dsh-notify-on-done
 
 换地址后权限是新的：origin 变了要重新授权一次。
 
+## 对话完成时进得了通知中心、却不弹横幅？
+
+这是 Windows 对「同 tag 通知」的处理方式：**tag 相同的新通知是原地更新**，只改通知中心里的条目，
+不再弹横幅。0.1.1 及以前，真实提醒的 tag 是 `会话id + 类型`（同会话固定不变），所以同一个会话
+第一次之后的每次完成都只是静默更新 —— 表现就是「通知中心里有，但不弹」。测试按钮当时能弹，
+恰恰是因为它每次 tag 都不同。
+
+0.1.2 起：每次提醒都用唯一 tag（`base + 时间戳 + 序号`），并顺手关掉同会话的上一条，于是
+每次完成都会弹横幅，通知中心里每个会话只留最新一条。
+
+想自己验证这个机制，控制台两行就够（不需要重启）：
+
+```js
+new Notification('A', { body: '全新 tag', tag: 'demo-a' })        // 会弹横幅
+new Notification('B', { body: '同一个 tag 再来', tag: 'demo-a' })  // 只更新，不弹
+```
+
 ## 点了「测试通知」没反应？
 
 按这个顺序查，一步能定位一层：
@@ -147,7 +164,7 @@ ln -sfn /path/to/dsh-notify-on-done node_modules/dsh-notify-on-done
 ## 开发
 
 ```bash
-node --test test/*.test.mjs        # 24 个用例，不需要浏览器
+node --test test/*.test.mjs        # 26 个用例，不需要浏览器
 node tools/verify-install.mjs      # 检查 profile 登记、解析、bundle 能否物化
 ```
 
