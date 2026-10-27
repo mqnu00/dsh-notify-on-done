@@ -273,3 +273,57 @@ test('浮层：列出自带关闭按钮', () => {
   close[0].props.onClick();
   assert.equal(exported.__test.toastStore.value.length, 0);
 });
+
+test('测试按钮：每次点击用不同 tag（同 tag 只会替换旧通知，第二次不再弹）', () => {
+  const { exported, mini, Notification } = loadPlugin({ permission: 'granted' });
+  const panel = mini.render(exported.__test.components.SettingsPanel, {
+    settings: { ...exported.__test.DEFAULTS },
+  });
+  const [button] = collect(
+    panel,
+    (item) => item.type === 'button' && texts(item).some((text) => text.includes('测试通知')),
+  );
+
+  button.props.onClick();
+  button.props.onClick();
+
+  assert.equal(Notification.calls.length, 2);
+  assert.notEqual(
+    Notification.calls[0].options.tag,
+    Notification.calls[1].options.tag,
+    '两次测试通知不能共用 tag，否则 Windows 只替换不提醒',
+  );
+  assert.equal(exported.__test.lastNotificationError(), '');
+});
+
+test('权限过期：面板以为已授权、浏览器其实已拒绝 → 记原因并走兜底，不静默', () => {
+  const { exported, mini, Notification } = loadPlugin({ permission: 'granted' });
+  // 用户在站点设置里改成了「禁止」，但面板还没刷新
+  Notification.permission = 'denied';
+
+  const panel = mini.render(exported.__test.components.SettingsPanel, {
+    settings: { ...exported.__test.DEFAULTS },
+  });
+  const [button] = collect(
+    panel,
+    (item) => item.type === 'button' && texts(item).some((text) => text.includes('测试通知')),
+  );
+
+  const before = exported.__test.toastStore.value.length;
+  button.props.onClick();
+
+  assert.equal(Notification.calls.length, 0, '权限不是 granted 时不许构造通知');
+  assert.match(exported.__test.lastNotificationError(), /denied/);
+  assert.equal(exported.__test.toastStore.value.length, before + 1, '必须落到站内浮层');
+});
+
+test('面板诊断行：权限 / 安全上下文 / 窗口聚焦 都写出来', () => {
+  const { exported, mini } = loadPlugin({ permission: 'granted' });
+  const panel = mini.render(exported.__test.components.SettingsPanel, {
+    settings: { ...exported.__test.DEFAULTS },
+  });
+  const diag = texts(panel).find((text) => text.startsWith('权限 '));
+  assert.ok(diag, '诊断行缺失');
+  assert.match(diag, /安全上下文/);
+  assert.match(diag, /窗口聚焦/);
+});

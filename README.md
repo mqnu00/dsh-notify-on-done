@@ -124,6 +124,19 @@ ln -sfn /path/to/dsh-notify-on-done node_modules/dsh-notify-on-done
 
 换地址后权限是新的：origin 变了要重新授权一次。
 
+## 点了「测试通知」没反应？
+
+按这个顺序查，一步能定位一层：
+
+1. **看面板底部那行诊断**：`权限 insecure · 安全上下文 否 …` —— 只要不是 `granted`，问题就不在插件，
+   先解决来源（上一节）；
+2. **权限是 granted 但还是没弹**：按 `Win + N` 打开通知中心，
+   - 里面有这条测试通知 → Windows 把它折叠了（勿扰 / 专注助手 / 通知横幅被关），去「设置 → 系统 → 通知」把横幅打开；
+   - 里面没有 → Windows 层面把 Chrome 的通知关了：「设置 → 系统 → 通知 → Chrome」；
+3. **点第一次有、第二次没有**：0.1.0 的 bug —— 测试通知复用了同一个 `tag`，浏览器按规范把它当成
+   「替换旧通知」，Windows 只替换不重新提醒；0.1.1 起每次用唯一 tag；
+4. 浏览器控制台（F12）里搜 `dsh-notify-on-done`，失败会打一行 `测试通知没发出去：<原因>`。
+
 ## Windows 排障
 
 1. 设置 → 系统 → 通知 → 允许 Chrome / Edge 通知；
@@ -134,7 +147,7 @@ ln -sfn /path/to/dsh-notify-on-done node_modules/dsh-notify-on-done
 ## 开发
 
 ```bash
-node --test test/*.test.mjs        # 21 个用例，不需要浏览器
+node --test test/*.test.mjs        # 24 个用例，不需要浏览器
 node tools/verify-install.mjs      # 检查 profile 登记、解析、bundle 能否物化
 ```
 
